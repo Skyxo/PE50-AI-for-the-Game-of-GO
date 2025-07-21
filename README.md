@@ -1,93 +1,136 @@
-# PE50-JeuDeGo
+# PE50-AI-for-the-Game-of-GO ★ AlphaGo-Lite (9×9)
 
-## Membres du projet
-Sacha Vanderaspoilden
+A compact, research-grade re-implementation of the **AlphaGo Zero** pipeline on a 9 × 9 board.  
+The engine blends **Monte-Carlo Tree Search (MCTS)** with twin neural networks (policy + value).  
+► **Bootstrap phase:** networks are first trained on 30,000 of **KataGo-generated games** (no human records).  
+► **Improvement phase:** the agent continues to refine itself through iterative **self-play**. 
 
-Théo Huangfu
+---
 
-Charles Bergeat
+## ✨ Key Features
 
-Lou Thomas
+| Axis | Highlights |
+|------|------------|
+| **Search / MCTS** | PUCT selection, Dirichlet noise at the root, value rollouts replaced by NN evaluation. Default **2 500 sims** per move and **C<sub>PUCT</sub> = 1.1**  |
+| **Policy Net** | 8-block ResNet with Squeeze-and-Excitation attention; dropout-optimised head; predicts 81 moves + pass in one softmax  |
+| **Value Net** | 6 residual blocks, global attention and Sigmoid head yielding a win-probability in \[0–1]  |
+| **Reinforcement Loop** | 50 self-play games → 25 training epochs → evaluation vs previous net every cycle; batching & multi-GPU friendly CLI  |
+| **Dataset Bootstrap** | 30 k 9×9 games produced by **KataGo** (ELO ≈ 14 k) → 17 M positions after 8-fold symmetry augmentation (provides a strong starting point before self-play)  |
+| **Interactive GUI** | Tkinter front-end (5×5 – 19×19), AI-vs-Human, AI-vs-AI, sandbox & heat-map overlay options  |
 
-Timothée Mizon
+---
 
-Rodrigue Miloud
+## 📂 Project Structure
 
-## Tuteur
-Philippe Michel
+```
 
-Alexandre Saidi
+PE50-AI-for-the-Game-of-GO/
+├── main.py                       # Tkinter GUI & game launcher
+├── MCTS\_GO.py                    # Core MCTS implementation
+├── katago\_relatives/
+│   └── katago-opencl-linux/
+│       └── networks/
+│           ├── go\_policy\_9x9\_v5.py           # Policy network
+│           ├── go\_value\_9x9\_v3.py            # Value network
+│           └── reinforcement\_learning.py     # Self-play + RL driver
+├── plateau.py | noeud\_go.py | arbre\_go.py    # Board & tree helpers
+├── moteursDeJeu.py | const.py                # Game engines & constants
+├── ressource/                                # GUI assets (background etc.)
+└── docs/plots/ (optional)                    # Training curves (add yours!)
 
-Abdel-Malik Zine
+````
 
-coucou
-## Conseiller 
-Mhosen Ardibilian
+---
 
+## ⚙️ Installation
 
-## Accéder au serveur gpu
-1) Être connecté au wifi de Centrale Lyon
-2) Ouvrir Windows PowerShell et entrer
-idf : ssh projet20@156.18.90.98
-mdp : ******
-3) Pour visualiser les fichiers à l'intérieur du répertoire, taper "ls"
-4) Pour se déplacer, taper "cd [nom du dossier]"
-5) "cd .." pour retourner en arrière
+```bash
+# Clone & enter
+git clone https://github.com/Skyxo/PE50-AI-for-the-Game-of-GO.git
+cd PE50-AI-for-the-Game-of-GO
 
-## COMMANDES LINUS ##
-Commandes Linux
-ls : liste les fichiers et dossiers dans le répertoire courant
-cd [nom du dossier] : change de répertoire
-pwd : affiche le chemin du répertoire courant
-mkdir [nom du dossier] : crée un nouveau dossier
-rm [nom du fichier] : supprime un fichier
-rm -r [nom du dossier] : supprime un dossier et son contenu
-cp [fichier source] [fichier destination] : copie un fichier
-mv [fichier source] [fichier destination] : déplace ou renomme un fichier
-touch [nom du fichier] : crée un nouveau fichier
-cat [nom du fichier] : affiche le contenu d'un fichier
-nano [nom du fichier] : édite un fichier avec l'éditeur de texte Nano
-chmod [permissions] [nom du fichier] : change les permissions d'un fichier
-grep [motif] [nom du fichier] : recherche un motif dans un fichier
-find [répertoire] -name [nom du fichier] : recherche un fichier dans un répertoire
-tar -xvf [nom du fichier.tar] : extrait un fichier tar
-tar -cvf [nom du fichier.tar] [fichiers à archiver] : crée une archive tar
-ssh [utilisateur]@[adresse IP] : se connecte à un serveur distant via SSH
-scp [fichier source] [utilisateur]@[adresse IP]:[fichier destination] : copie un fichier vers un serveur distant via SCP
-man [commande] : affiche le manuel d'une commande
+# Create a virtual-env (Python ≥ 3.9 recommended)
+python -m venv .venv && source .venv/bin/activate
 
-## COMMANDES GITHUB ##
-Pour fet origin, taper : "git fetch origin" et entrer ses idf/mdp de la DSI ECL
-Pour pull, taper : "git pull" et entrer ses idf/mdp de la DSI ECL
-Pour changer de branche : git switch [nom de la branche]
-# 1. Ajouter les fichiers modifiés
-git add training.py  # ou . pour tout
-# 2. Commit
-git commit -m "Ajout du logging et des checkpoints"
-# 3. Push vers le dépôt distant
-git push origin nom_de_la_branche
-# 4. Safe push
-git pull origin testcharles_ameliore --rebase
-puis :
-git push origin testcharles_ameliore
+# Core dependencies
+pip install torch numpy matplotlib tqdm tkinter  # plus anything you add later
+````
 
-## SESSION TMUX ##
-1) Créer une nouvelle session nommée training : tmux new -s training
-2) Lancer ton script d'entraînement dedans : python3 training.py --data fox_dataset.npz --bs 512 --lr 1e-3 --epochs 20
-3) Détacher proprement la session (laisser tourner en fond) : Ctrl + B puis D (D comme “detach”)
-Tu vois quelque chose comme : [detached (from session training)] -> Tu es revenu dans le terminal normal, mais ton entraînement continue en arrière-plan dans la session tmux.
-4) Rejoindre la session plus tard (même après déconnexion SSH) : tmux attach -t training
--> Tu retrouves ton terminal tel que tu l’avais laissé (permet de suivre la progression ou relancer un script à la main).
-5) Fermer une session tmux proprement : exit
-6) Liste des sessions tmux existantes : tmux ls (Tu verras par exemple : training: 1 windows (created Mon 12:00) [80x24])
+*KataGo binaries* for data boot-strapping are vendored under `katago_relatives/`; feel free to swap in a newer network.
 
-7) Arrêter une session tmux : tmux kill-session -t ma_session
+---
 
-8) Arrêter la session dès que l'entraînement est terminé : 
-tmux new -s training "python training.py --data fox_dataset.npz --epochs 20 && tmux kill-session -t training"
+## 🚀 Quick Start
 
-9) Copier toute la console : 
+### 1 ▪ Pre-Training + Self-Play
 
-## LANCER L'ENTRAÎNEMENT ##
-1) Se mettre dans le même répertoire que training.py
-2) envoyer : python3 training.py --data fox_dataset.npz --bs 512 --lr 1e-3 --epochs 20
+```bash
+python katago_relatives/katago-opencl-linux/networks/reinforcement_learning.py \
+  --iterations 100 \          # RL cycles
+  --games 50 \                # self-play games / cycle
+  --epochs 25 \               # NN epochs / cycle
+  --mcts_sims 800 \           # simulations / move
+  --eval_simulations 3200 \   # sims for evaluation
+  --eval_games 20             # evaluation matches / cycle
+```
+
+*During the **first** cycle the script loads the KataGo-generated dataset and performs supervised pre-training on policy & value heads before switching to pure self-play.*
+Resume any run with `--resume checkpoints/latest.pth`.
+
+### 2 ▪ Play Through the GUI
+
+```bash
+python main.py
+```
+
+Inside the launcher you can:
+
+* Choose board size (5 / 9 / 13 / 19)
+* Launch **Sandbox**, **Human vs Human**, **Play vs AI**, or **AI vs AI**
+* Toggle the heat-map overlay to visualise MCTS visits.
+
+---
+
+## 📊 Training Metrics
+
+During training the script logs CSV and generates plots for:
+
+* **Policy loss** & **Value loss** per epoch
+* **Win-rate** against previous generations
+* **Experience buffer size** growth
+
+Add your graphs under `docs/plots/` and embed them here for a quick visual.
+
+---
+
+## 🔬 Research Internals
+
+* **Minimal input planes** – only current & opponent stones: forces the net to learn tactics, not hand-coded patterns.
+* **Top-k expansion** – keeps the 15 best moves (9×9) when expanding a node, capping tree width.
+* **Model refresh** – periodic “weight-re-load” halves optimiser momentum to escape plateaus.
+
+---
+
+## 🛣 Roadmap
+
+* [ ] Curriculum learning for 13×13 then 19×19
+* [ ] SGF export + GTP bridge
+* [ ] Distributed self-play (Ray / MPI)
+* [ ] Heat-map overlay inside the GUI
+* [ ] CI pipeline & pre-commit hooks
+
+---
+
+## 🤝 Contributing
+
+1. **Fork** ➜ create a feature branch (`feat/your-feature`)
+2. Format with `black` / `flake8`, run tests if you add them
+3. Open a well-described Pull Request (screenshots welcome!)
+
+---
+
+## 📜 Credits & Licence
+
+*Built by the PE-50 team (École Centrale de Lyon, 2025).*
+Inspired by **DeepMind’s AlphaGo Zero** and the open-source **KataGo** community.
+Released under the **MIT Licence** – see `LICENSE` for details.
