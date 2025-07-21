@@ -41,6 +41,7 @@ PE50-AI-for-the-Game-of-GO/
 ├── ressource/                              # GUI assets
 └── docs/
     ├── Rapport_PE_050_2024.pdf             # Project report (this PDF)
+    └── plots/                              # Training curves
 ````
 
 ---
