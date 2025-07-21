@@ -2,7 +2,7 @@
 
 A compact, research-grade re-implementation of the **AlphaGo Zero** pipeline on a 9 × 9 board.  
 The engine blends **Monte-Carlo Tree Search (MCTS)** with twin neural networks (policy + value).  
-► **Bootstrap phase:** networks are first trained on thousands of **KataGo-generated games** (no human records).  
+► **Bootstrap phase:** networks are first trained on 30,000 of **KataGo-generated games** (no human records).  
 ► **Improvement phase:** the agent continues to refine itself through iterative **self-play**. 
 
 ---
@@ -15,7 +15,7 @@ The engine blends **Monte-Carlo Tree Search (MCTS)** with twin neural networks (
 | **Policy Net** | 8-block ResNet with Squeeze-and-Excitation attention; dropout-optimised head; predicts 81 moves + pass in one softmax  |
 | **Value Net** | 6 residual blocks, global attention and Sigmoid head yielding a win-probability in \[0–1]  |
 | **Reinforcement Loop** | 50 self-play games → 25 training epochs → evaluation vs previous net every cycle; batching & multi-GPU friendly CLI  |
-| **Dataset Bootstrap** | ≈30 k 9×9 games produced by **KataGo** (ELO ≈ 14 k) → 17 M positions after 8-fold symmetry augmentation (provides a strong starting point before self-play)  |
+| **Dataset Bootstrap** | 30 k 9×9 games produced by **KataGo** (ELO ≈ 14 k) → 17 M positions after 8-fold symmetry augmentation (provides a strong starting point before self-play)  |
 | **Interactive GUI** | Tkinter front-end (5×5 – 19×19), AI-vs-Human, AI-vs-AI, sandbox & heat-map overlay options  |
 
 ---
