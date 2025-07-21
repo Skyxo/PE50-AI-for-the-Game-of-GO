@@ -140,8 +140,6 @@ Each colour tracks one reinforcement-learning iteration (25 epochs).
 * Scheduled **optimizer refresh** keeps both nets from stagnating after LR drops.  
 * Resulting agent achieves **strong generalisation** — high win-rate on previously unseen openings & vs baseline bots.
 
-> Feel free to add your own figures (PNG/SVG) under `docs/plots/` and embed them here with a short caption — consistency beats quantity!
-
 
 ## 🔬 Research Internals
 
