@@ -1,7 +1,9 @@
-# AlphaGo-Lite ★ Reinforcement Learning for 9×9 Go
+# PE50-AI-for-the-Game-of-GO ★ AlphaGo-Lite (9×9)
 
-A compact re-implementation of the **AlphaGo Zero** pipeline on a 9×9 board.  
-The engine couples **Monte-Carlo Tree Search (MCTS)** with twin neural networks (policy + value) and learns exclusively from **self-play**, needing **no human data**.
+A compact, research-grade re-implementation of the **AlphaGo Zero** pipeline on a 9 × 9 board.  
+The engine blends **Monte-Carlo Tree Search (MCTS)** with twin neural networks (policy + value).  
+► **Bootstrap phase:** networks are first trained on thousands of **KataGo-generated games** (no human records).  
+► **Improvement phase:** the agent continues to refine itself through iterative **self-play**. 
 
 ---
 
@@ -9,13 +11,12 @@ The engine couples **Monte-Carlo Tree Search (MCTS)** with twin neural networks 
 
 | Axis | Highlights |
 |------|------------|
-| **Search** | MCTS with **PUCT** selection, Dirichlet noise for exploration and value rollouts replaced by a NN evaluation :contentReference[oaicite:12]{index=12} |
-| **Policy Net** | 8-block ResNet + Squeeze-and-Excitation, outputs full move distribution (81 + pass) in a single softmax :contentReference[oaicite:13]{index=13} |
-| **Value Net** | 6 residual blocks with global attention, predicts win-probability in \[0, 1\] :contentReference[oaicite:14]{index=14} |
-| **Dataset bootstrap** | 30 k 9×9 games auto-annotated with **KataGo** (ELO ≈ 14 k) → >17 M positions after 8-fold symmetry augmentation :contentReference[oaicite:15]{index=15} |
-| **Self-play loop** | 50 games → 25 training epochs → 20 evaluation games per iteration; automatic promotion when win-rate > 50 % :contentReference[oaicite:16]{index=16} |
-| **Fast progression** | First 3 iterations jump from 60 % to 73 % win-rate vs previous nets before plateauing :contentReference[oaicite:17]{index=17} |
-| **GUI** | Tkinter board (5×5 – 19×19) for human play, AI vs AI or sandbox experimentation :contentReference[oaicite:18]{index=18} |
+| **Search / MCTS** | PUCT selection, Dirichlet noise at the root, value rollouts replaced by NN evaluation. Default **2 500 sims** per move and **C<sub>PUCT</sub> = 1.1**  |
+| **Policy Net** | 8-block ResNet with Squeeze-and-Excitation attention; dropout-optimised head; predicts 81 moves + pass in one softmax  |
+| **Value Net** | 6 residual blocks, global attention and Sigmoid head yielding a win-probability in \[0–1]  |
+| **Reinforcement Loop** | 50 self-play games → 25 training epochs → evaluation vs previous net every cycle; batching & multi-GPU friendly CLI  |
+| **Dataset Bootstrap** | ≈30 k 9×9 games produced by **KataGo** (ELO ≈ 14 k) → 17 M positions after 8-fold symmetry augmentation (provides a strong starting point before self-play)  |
+| **Interactive GUI** | Tkinter front-end (5×5 – 19×19), AI-vs-Human, AI-vs-AI, sandbox & heat-map overlay options  |
 
 ---
 
@@ -23,16 +24,19 @@ The engine couples **Monte-Carlo Tree Search (MCTS)** with twin neural networks 
 
 ```
 
-alpha\_go\_lite/
-├── MCTS\_GO.py                 # Core MCTS implementation
-├── go\_policy\_9x9\_v5.py        # Policy network definition & training helpers
-├── go\_value\_9x9\_v3.py         # Value network definition & training helpers
+PE50-AI-for-the-Game-of-GO/
+├── main.py                       # Tkinter GUI & game launcher
+├── MCTS\_GO.py                    # Core MCTS implementation
 ├── katago\_relatives/
 │   └── katago-opencl-linux/
 │       └── networks/
-│           └── reinforcement\_learning.py  # Self-play + RL driver
-├── gui/                        # Tkinter interface (human or AI play)
-└── requirements.txt
+│           ├── go\_policy\_9x9\_v5.py           # Policy network
+│           ├── go\_value\_9x9\_v3.py            # Value network
+│           └── reinforcement\_learning.py     # Self-play + RL driver
+├── plateau.py | noeud\_go.py | arbre\_go.py    # Board & tree helpers
+├── moteursDeJeu.py | const.py                # Game engines & constants
+├── ressource/                                # GUI assets (background etc.)
+└── docs/plots/ (optional)                    # Training curves (add yours!)
 
 ````
 
@@ -41,92 +45,92 @@ alpha\_go\_lite/
 ## ⚙️ Installation
 
 ```bash
-git clone https://github.com/your-username/alpha_go_lite.git
-cd alpha_go_lite
+# Clone & enter
+git clone https://github.com/Skyxo/PE50-AI-for-the-Game-of-GO.git
+cd PE50-AI-for-the-Game-of-GO
 
-# Python ≥3.9 and virtual-env recommended
+# Create a virtual-env (Python ≥ 3.9 recommended)
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt   # torch, numpy, matplotlib, tqdm, etc.
+
+# Core dependencies
+pip install torch numpy matplotlib tqdm tkinter  # plus anything you add later
 ````
 
-*KataGo binaries* (for optional data generation) are already vendored under `katago_relatives/`, but you can drop in a newer network if you wish.
+*KataGo binaries* for data boot-strapping are vendored under `katago_relatives/`; feel free to swap in a newer network.
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Train from scratch
+### 1 ▪ Pre-Training + Self-Play
 
 ```bash
 python katago_relatives/katago-opencl-linux/networks/reinforcement_learning.py \
-  --iterations 100 \        # RL cycles
-  --games 50 \              # self-play games per cycle
-  --epochs 25 \             # NN epochs per cycle
-  --mcts_sims 800 \         # simulations per move
-  --eval_simulations 3200 \ # simulations for evaluation matches
-  --eval_games 20           # eval matches vs previous net
+  --iterations 100 \          # RL cycles
+  --games 50 \                # self-play games / cycle
+  --epochs 25 \               # NN epochs / cycle
+  --mcts_sims 800 \           # simulations / move
+  --eval_simulations 3200 \   # sims for evaluation
+  --eval_games 20             # evaluation matches / cycle
 ```
 
-Checkpoints are written every cycle; resume with `--resume checkpoints/latest.pth`.
+*During the **first** cycle the script loads the KataGo-generated dataset and performs supervised pre-training on policy & value heads before switching to pure self-play.*
+Resume any run with `--resume checkpoints/latest.pth`.
 
-### 2. Play against the AI
+### 2 ▪ Play Through the GUI
 
 ```bash
-python gui/play.py --size 9 --mcts_sims 800
+python main.py
 ```
 
-| Option                         | Purpose             |
-| ------------------------------ | ------------------- |
-| `--size {5,9,13,19}`           | Board size          |
-| `--human_first`                | Let human start     |
-| `--model checkpoints/best.pth` | Load custom network |
+Inside the launcher you can:
+
+* Choose board size (5 / 9 / 13 / 19)
+* Launch **Sandbox**, **Human vs Human**, **Play vs AI**, or **AI vs AI**
+* Toggle the heat-map overlay to visualise MCTS visits.
 
 ---
 
-## 📊 Training Curves & Metrics
+## 📊 Training Metrics
 
-* **KL-divergence** of the policy drops from 3.3 → 1.9 after 9 cycles, while **value MSE** reaches ≈ 0.23.
-* **Entropy monitoring** stays near 2.2 nats, balancing exploration and exploit confidence.
-* Win-rate progression shown below (20 games / point): rapid gains, then convergence around the 50 % line as nets level up .
+During training the script logs CSV and generates plots for:
 
-*(Add `docs/plots/*.png` once your training run finishes for visual curves.)*
+* **Policy loss** & **Value loss** per epoch
+* **Win-rate** against previous generations
+* **Experience buffer size** growth
+
+Add your graphs under `docs/plots/` and embed them here for a quick visual.
 
 ---
 
 ## 🔬 Research Internals
 
-* **Minimal input planes** – only two binary channels (current / opponent stones) to force the net to infer tactics .
-* **Top-k expansion** – keep k best policy moves during node expansion to cap tree width.
-* **RAdam + weight-decay** with periodic *optimizer refresh* every 50 cycles to escape plateaus, following the ablation in the report .
+* **Minimal input planes** – only current & opponent stones: forces the net to learn tactics, not hand-coded patterns.
+* **Top-k expansion** – keeps the 15 best moves (9×9) when expanding a node, capping tree width.
+* **Model refresh** – periodic “weight-re-load” halves optimiser momentum to escape plateaus.
 
 ---
 
 ## 🛣 Roadmap
 
-* [ ] Add 13×13 profile & curriculum resize
-* [ ] Graphical analyzer (heat-map of MCTS visits)
-* [ ] Export to SGF & GTP bridge for online play
+* [ ] Curriculum learning for 13×13 then 19×19
+* [ ] SGF export + GTP bridge
 * [ ] Distributed self-play (Ray / MPI)
+* [ ] Heat-map overlay inside the GUI
+* [ ] CI pipeline & pre-commit hooks
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork → branch (`feat/xxx`)
-2. `pre-commit run --all-files` (black & flake8)
-3. PR with a clear description, screenshots if GUI-related.
+1. **Fork** ➜ create a feature branch (`feat/your-feature`)
+2. Format with `black` / `flake8`, run tests if you add them
+3. Open a well-described Pull Request (screenshots welcome!)
 
 ---
 
-## 📜 License
+## 📜 Credits & Licence
 
-This project is released under the **MIT License**. See `LICENSE` for details.
-
----
-
-## 🙏 Credits
-
-* Inspired by DeepMind’s AlphaGo Zero and the **KataGo** open-source community.
-* Built by the PE 50 team (École Centrale de Lyon, 2025) .
-
-Happy Go-coding! 🏯♟️
+*Built by the PE-50 team (École Centrale de Lyon, 2025).*
+Inspired by **DeepMind’s AlphaGo Zero** and the open-source **KataGo** community.
+Released under the **MIT Licence** – see `LICENSE` for details.
