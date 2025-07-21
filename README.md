@@ -1,6 +1,9 @@
 # PE50-AI-for-the-Game-of-GO ★ AlphaGo-Lite (9×9)
 
 A compact, research-grade re-implementation of the **AlphaGo Zero** pipeline on a 9 × 9 board.  
+
+📄 **Project report (PDF)** → [docs/Rapport_PE_050_2024.pdf](docs/Rapport_PE_050_2024.pdf)
+
 The engine blends **Monte-Carlo Tree Search (MCTS)** with twin neural networks (policy + value).  
 ► **Bootstrap phase:** networks are first trained on 30,000 of **KataGo-generated games** (no human records).  
 ► **Improvement phase:** the agent continues to refine itself through iterative **self-play**. 
