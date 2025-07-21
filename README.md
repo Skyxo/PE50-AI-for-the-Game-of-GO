@@ -1,93 +1,132 @@
-# PE50-JeuDeGo
+# AlphaGo-Lite ★ Reinforcement Learning for 9×9 Go
 
-## Membres du projet
-Sacha Vanderaspoilden
+A compact re-implementation of the **AlphaGo Zero** pipeline on a 9×9 board.  
+The engine couples **Monte-Carlo Tree Search (MCTS)** with twin neural networks (policy + value) and learns exclusively from **self-play**, needing **no human data**.
 
-Théo Huangfu
+---
 
-Charles Bergeat
+## ✨ Key Features
 
-Lou Thomas
+| Axis | Highlights |
+|------|------------|
+| **Search** | MCTS with **PUCT** selection, Dirichlet noise for exploration and value rollouts replaced by a NN evaluation :contentReference[oaicite:12]{index=12} |
+| **Policy Net** | 8-block ResNet + Squeeze-and-Excitation, outputs full move distribution (81 + pass) in a single softmax :contentReference[oaicite:13]{index=13} |
+| **Value Net** | 6 residual blocks with global attention, predicts win-probability in \[0, 1\] :contentReference[oaicite:14]{index=14} |
+| **Dataset bootstrap** | 30 k 9×9 games auto-annotated with **KataGo** (ELO ≈ 14 k) → >17 M positions after 8-fold symmetry augmentation :contentReference[oaicite:15]{index=15} |
+| **Self-play loop** | 50 games → 25 training epochs → 20 evaluation games per iteration; automatic promotion when win-rate > 50 % :contentReference[oaicite:16]{index=16} |
+| **Fast progression** | First 3 iterations jump from 60 % to 73 % win-rate vs previous nets before plateauing :contentReference[oaicite:17]{index=17} |
+| **GUI** | Tkinter board (5×5 – 19×19) for human play, AI vs AI or sandbox experimentation :contentReference[oaicite:18]{index=18} |
 
-Timothée Mizon
+---
 
-Rodrigue Miloud
+## 📂 Project Structure
 
-## Tuteur
-Philippe Michel
+```
 
-Alexandre Saidi
+alpha\_go\_lite/
+├── MCTS\_GO.py                 # Core MCTS implementation
+├── go\_policy\_9x9\_v5.py        # Policy network definition & training helpers
+├── go\_value\_9x9\_v3.py         # Value network definition & training helpers
+├── katago\_relatives/
+│   └── katago-opencl-linux/
+│       └── networks/
+│           └── reinforcement\_learning.py  # Self-play + RL driver
+├── gui/                        # Tkinter interface (human or AI play)
+└── requirements.txt
 
-Abdel-Malik Zine
+````
 
-coucou
-## Conseiller 
-Mhosen Ardibilian
+---
 
+## ⚙️ Installation
 
-## Accéder au serveur gpu
-1) Être connecté au wifi de Centrale Lyon
-2) Ouvrir Windows PowerShell et entrer
-idf : ssh projet20@156.18.90.98
-mdp : ******
-3) Pour visualiser les fichiers à l'intérieur du répertoire, taper "ls"
-4) Pour se déplacer, taper "cd [nom du dossier]"
-5) "cd .." pour retourner en arrière
+```bash
+git clone https://github.com/your-username/alpha_go_lite.git
+cd alpha_go_lite
 
-## COMMANDES LINUS ##
-Commandes Linux
-ls : liste les fichiers et dossiers dans le répertoire courant
-cd [nom du dossier] : change de répertoire
-pwd : affiche le chemin du répertoire courant
-mkdir [nom du dossier] : crée un nouveau dossier
-rm [nom du fichier] : supprime un fichier
-rm -r [nom du dossier] : supprime un dossier et son contenu
-cp [fichier source] [fichier destination] : copie un fichier
-mv [fichier source] [fichier destination] : déplace ou renomme un fichier
-touch [nom du fichier] : crée un nouveau fichier
-cat [nom du fichier] : affiche le contenu d'un fichier
-nano [nom du fichier] : édite un fichier avec l'éditeur de texte Nano
-chmod [permissions] [nom du fichier] : change les permissions d'un fichier
-grep [motif] [nom du fichier] : recherche un motif dans un fichier
-find [répertoire] -name [nom du fichier] : recherche un fichier dans un répertoire
-tar -xvf [nom du fichier.tar] : extrait un fichier tar
-tar -cvf [nom du fichier.tar] [fichiers à archiver] : crée une archive tar
-ssh [utilisateur]@[adresse IP] : se connecte à un serveur distant via SSH
-scp [fichier source] [utilisateur]@[adresse IP]:[fichier destination] : copie un fichier vers un serveur distant via SCP
-man [commande] : affiche le manuel d'une commande
+# Python ≥3.9 and virtual-env recommended
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt   # torch, numpy, matplotlib, tqdm, etc.
+````
 
-## COMMANDES GITHUB ##
-Pour fet origin, taper : "git fetch origin" et entrer ses idf/mdp de la DSI ECL
-Pour pull, taper : "git pull" et entrer ses idf/mdp de la DSI ECL
-Pour changer de branche : git switch [nom de la branche]
-# 1. Ajouter les fichiers modifiés
-git add training.py  # ou . pour tout
-# 2. Commit
-git commit -m "Ajout du logging et des checkpoints"
-# 3. Push vers le dépôt distant
-git push origin nom_de_la_branche
-# 4. Safe push
-git pull origin testcharles_ameliore --rebase
-puis :
-git push origin testcharles_ameliore
+*KataGo binaries* (for optional data generation) are already vendored under `katago_relatives/`, but you can drop in a newer network if you wish.
 
-## SESSION TMUX ##
-1) Créer une nouvelle session nommée training : tmux new -s training
-2) Lancer ton script d'entraînement dedans : python3 training.py --data fox_dataset.npz --bs 512 --lr 1e-3 --epochs 20
-3) Détacher proprement la session (laisser tourner en fond) : Ctrl + B puis D (D comme “detach”)
-Tu vois quelque chose comme : [detached (from session training)] -> Tu es revenu dans le terminal normal, mais ton entraînement continue en arrière-plan dans la session tmux.
-4) Rejoindre la session plus tard (même après déconnexion SSH) : tmux attach -t training
--> Tu retrouves ton terminal tel que tu l’avais laissé (permet de suivre la progression ou relancer un script à la main).
-5) Fermer une session tmux proprement : exit
-6) Liste des sessions tmux existantes : tmux ls (Tu verras par exemple : training: 1 windows (created Mon 12:00) [80x24])
+---
 
-7) Arrêter une session tmux : tmux kill-session -t ma_session
+## 🚀 Quick Start
 
-8) Arrêter la session dès que l'entraînement est terminé : 
-tmux new -s training "python training.py --data fox_dataset.npz --epochs 20 && tmux kill-session -t training"
+### 1. Train from scratch
 
-9) Copier toute la console : 
+```bash
+python katago_relatives/katago-opencl-linux/networks/reinforcement_learning.py \
+  --iterations 100 \        # RL cycles
+  --games 50 \              # self-play games per cycle
+  --epochs 25 \             # NN epochs per cycle
+  --mcts_sims 800 \         # simulations per move
+  --eval_simulations 3200 \ # simulations for evaluation matches
+  --eval_games 20           # eval matches vs previous net
+```
 
-## LANCER L'ENTRAÎNEMENT ##
-1) Se mettre dans le même répertoire que training.py
-2) envoyer : python3 training.py --data fox_dataset.npz --bs 512 --lr 1e-3 --epochs 20
+Checkpoints are written every cycle; resume with `--resume checkpoints/latest.pth`.
+
+### 2. Play against the AI
+
+```bash
+python gui/play.py --size 9 --mcts_sims 800
+```
+
+| Option                         | Purpose             |
+| ------------------------------ | ------------------- |
+| `--size {5,9,13,19}`           | Board size          |
+| `--human_first`                | Let human start     |
+| `--model checkpoints/best.pth` | Load custom network |
+
+---
+
+## 📊 Training Curves & Metrics
+
+* **KL-divergence** of the policy drops from 3.3 → 1.9 after 9 cycles, while **value MSE** reaches ≈ 0.23.
+* **Entropy monitoring** stays near 2.2 nats, balancing exploration and exploit confidence.
+* Win-rate progression shown below (20 games / point): rapid gains, then convergence around the 50 % line as nets level up .
+
+*(Add `docs/plots/*.png` once your training run finishes for visual curves.)*
+
+---
+
+## 🔬 Research Internals
+
+* **Minimal input planes** – only two binary channels (current / opponent stones) to force the net to infer tactics .
+* **Top-k expansion** – keep k best policy moves during node expansion to cap tree width.
+* **RAdam + weight-decay** with periodic *optimizer refresh* every 50 cycles to escape plateaus, following the ablation in the report .
+
+---
+
+## 🛣 Roadmap
+
+* [ ] Add 13×13 profile & curriculum resize
+* [ ] Graphical analyzer (heat-map of MCTS visits)
+* [ ] Export to SGF & GTP bridge for online play
+* [ ] Distributed self-play (Ray / MPI)
+
+---
+
+## 🤝 Contributing
+
+1. Fork → branch (`feat/xxx`)
+2. `pre-commit run --all-files` (black & flake8)
+3. PR with a clear description, screenshots if GUI-related.
+
+---
+
+## 📜 License
+
+This project is released under the **MIT License**. See `LICENSE` for details.
+
+---
+
+## 🙏 Credits
+
+* Inspired by DeepMind’s AlphaGo Zero and the **KataGo** open-source community.
+* Built by the PE 50 team (École Centrale de Lyon, 2025) .
+
+Happy Go-coding! 🏯♟️
