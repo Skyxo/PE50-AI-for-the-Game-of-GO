@@ -1,0 +1,2 @@
+Iteration,Policy_Loss,Value_Loss,Win_Rate,Self_Play_Games,Buffer_Size
+4,2.088883,0.247338,0.466667,50,10749
